@@ -1,0 +1,132 @@
+datasource data {
+    provider = "mysql"
+    url = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model User {
+    id Int  @id @default(autoincrement())
+    username String @unique
+    email String    @unique
+    password String
+    photoProfil String?
+    birthday DateTime?  @default(now())
+    horoscope String?
+    hobbies Json?
+    languages Json
+    description String?
+    preference Json
+    gender Gender @default(other)
+    coins Int   @default(0)
+    isCertified Boolean @default(false)
+    isFake Boolean @default(false)
+    longitude Decimal?
+    latitude Decimal?
+    country String?
+    city String?
+    isOnline Boolean    @default(false)
+    role Role @default(USER)
+    deviceToken String?
+    initiatedMatches    Match[] @relation("initiatedMatches")
+    receivedMatches  Match[] @relation("receivedMatches")
+    sentNotifications Notification[] @relation("sentNotifications")
+    receivedNotifications Notification[] @relation("receivedNotifications")
+    sentMessages Message[] @relation("sentMessages")
+
+    @@index([longitude, latitude], name: "location_index")
+}
+
+enum Gender {
+    male
+    female
+    other
+}
+
+enum Role {
+    USER
+    ADMIN
+    AGENT
+}
+
+model Match {
+    id Int  @id @default(autoincrement())
+    sender User? @relation("initiatedMatches", fields: [senderId], references: [id])
+    senderId Int?
+    recipient User? @relation("receivedMatches", fields: [recipientId], references: [id])
+    recipientId Int?
+    isConfirmed Boolean @default(false)
+    typeMatch TypeMatch @default(normal)
+}
+
+enum TypeMatch {
+    special
+    normal
+}
+
+model Notification {
+    id Int  @id @default(autoincrement())
+    title String
+    content String
+    sender User   @relation("sentNotifications", fields: [senderId], references: [id])
+    senderId Int
+    recipient User @relation("receivedNotifications", fields: [recipientId], references: [id])
+    recipientId Int
+    createdAt    DateTime @default(now())
+}
+
+model ChatRoom {
+    id Int @id  @default(autoincrement())
+    participants Json
+    lastMessage String? @data.VarChar(1000)
+    lastMessageSender Int? 
+    lastMessageStatus LastMessageStatus @default(pending)
+    messages Message[] @relation("chatRoomToMessages")
+}
+
+enum LastMessageStatus {
+    pending
+    sent
+    unsent
+    delivered
+    read
+}
+
+model Message {
+    id Int @id @default(autoincrement())
+    content String
+    type TypeMessage @default(text)
+    sender User @relation("sentMessages", fields: [senderId], references: [id])
+    senderId Int
+    dateMessage DateTime @default(now())
+    messageStatus MessageStatus @default(pending)
+    gift Gift? @relation("forMessage")
+    giftId Int?
+    chatRoom ChatRoom @relation("chatRoomToMessages", fields: [chatId], references: [id])
+    chatId Int @unique
+}
+
+enum TypeMessage {
+    text
+    gift
+    file
+}
+
+enum MessageStatus {
+    pending
+    sent
+    delivered
+    read
+}
+
+model Gift {
+    id Int @id @default(autoincrement())
+    name String
+    price Decimal
+    image String
+    isAvailable Boolean @default(true)
+    message Message? @relation("forMessage", fields: [messageId], references: [id])
+    messageId Int? @unique
+}
